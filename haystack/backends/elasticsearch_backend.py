@@ -715,7 +715,10 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
             query_frag = prepared_value
         else:
             if filter_type == 'null':
-                query_frag = u'-[* TO *]'
+                if value:
+                    query_frag = u'-[* TO *]'
+                else:
+                    query_frag = u'[* TO *]'
             elif filter_type in ['contains', 'startswith']:
                 if value.input_type_name == 'exact':
                     query_frag = prepared_value

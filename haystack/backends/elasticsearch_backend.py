@@ -715,7 +715,7 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
             query_frag = prepared_value
         else:
             if filter_type == 'null':
-                if value:
+                if value.query_string:
                     query_frag = u'-[* TO *]'
                 else:
                     query_frag = u'[* TO *]'

@@ -714,7 +714,9 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
         if value.post_process is False:
             query_frag = prepared_value
         else:
-            if filter_type in ['contains', 'startswith']:
+            if filter_type == 'null':
+                query_frag = u'-[* TO *]'
+            elif filter_type in ['contains', 'startswith']:
                 if value.input_type_name == 'exact':
                     query_frag = prepared_value
                 else:

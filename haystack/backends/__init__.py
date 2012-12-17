@@ -245,11 +245,11 @@ class SearchNode(tree.Node):
         parts = expression.split(FILTER_SEPARATOR)
         field = parts[0]
 
-        if len(parts) == 1 or parts[-1] not in VALID_FILTERS:
+        if parts[-1] not in VALID_FILTERS:
             filter_type = 'contains'
         else:
             filter_type = parts.pop()
-
+        field = '.'.join(parts)
         return (field, filter_type)
 
 

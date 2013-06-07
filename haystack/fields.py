@@ -3,7 +3,6 @@ from django.utils import datetime_safe
 from django.template import loader, Context
 from haystack.exceptions import SearchFieldError
 
-
 class NOT_PROVIDED:
     pass
 
@@ -138,6 +137,15 @@ class SearchField(object):
         """
         return value
 
+
+class AttachmentField(SearchField):
+    field_type = 'attachment'
+
+    def prepare(self, obj):
+        return self.convert(super(AttachmentField, self).prepare(obj))
+
+    def convert(self, value):
+        return unicode(value)
 
 class CharField(SearchField):
     field_type = 'string'

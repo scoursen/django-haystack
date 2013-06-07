@@ -50,7 +50,7 @@ Elasticsearch
 * Stored (non-indexed) fields
 * Highlighting
 * Spatial search
-* Requires: pyelasticsearch 0.2+ & Elasticsearch 0.17.7+
+* Requires: pyelasticsearch 0.4+ & Elasticsearch 0.17.7+
 
 Whoosh
 ------
@@ -79,6 +79,8 @@ Xapian
 * Requires: Xapian 1.0.5+ & python-xapian 1.0.5+
 * Backend can be downloaded here: `xapian-haystack <http://github.com/notanumber/xapian-haystack/>`_
 
+Backend Support Matrix
+======================
 
 +----------------+------------------------+---------------------+----------------+------------+----------+---------------+--------------+---------+
 | Backend        | SearchQuerySet Support | Auto Query Building | More Like This | Term Boost | Faceting | Stored Fields | Highlighting | Spatial |

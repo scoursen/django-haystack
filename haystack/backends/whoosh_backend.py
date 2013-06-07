@@ -11,7 +11,7 @@ from django.utils.encoding import force_unicode
 from haystack.backends import BaseEngine, BaseSearchBackend, BaseSearchQuery, log_query, EmptyResults
 from haystack.constants import ID, DJANGO_CT, DJANGO_ID
 from haystack.exceptions import MissingDependency, SearchBackendError
-from haystack.inputs import PythonData, Clean, Exact
+from haystack.inputs import PythonData, Clean, Exact, Raw
 from haystack.models import SearchResult
 from haystack.utils import get_identifier
 from haystack.utils import log as logging
@@ -186,7 +186,7 @@ class WhooshSearchBackend(BaseSearchBackend):
                 # We'll log the object identifier but won't include the actual object
                 # to avoid the possibility of that generating encoding errors while
                 # processing the log message:
-                self.log.error(u"%s while preparing object for update" % e.__name__, exc_info=True, extra={
+                self.log.error(u"%s while preparing object for update" % e.__class__.__name__, exc_info=True, extra={
                     "data": {
                         "index": index,
                         "object": get_identifier(obj)
@@ -823,7 +823,7 @@ class WhooshSearchQuery(BaseSearchQuery):
 
                     if is_datetime is True:
                         pv = self._convert_datetime(pv)
-                    
+
                     if isinstance(pv, basestring) and not is_datetime:
                         in_options.append('"%s"' % pv)
                     else:
@@ -853,8 +853,9 @@ class WhooshSearchQuery(BaseSearchQuery):
 
                 query_frag = filter_types[filter_type] % prepared_value
 
-        if len(query_frag) and not query_frag.startswith('(') and not query_frag.endswith(')'):
-            query_frag = "(%s)" % query_frag
+        if len(query_frag) and not isinstance(value, Raw):
+            if not query_frag.startswith('(') and not query_frag.endswith(')'):
+                query_frag = "(%s)" % query_frag
 
         return u"%s%s" % (index_fieldname, query_frag)
 

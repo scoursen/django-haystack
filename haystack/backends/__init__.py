@@ -230,7 +230,7 @@ class SearchNode(tree.Node):
                 result.append(query_fragment_callback(field, filter_type, value))
 
         conn = ' %s ' % self.connector
-        query_string = conn.join(result)
+        query_string = conn.join((x for x in result if x))
 
         if query_string:
             if self.negated:
@@ -244,8 +244,10 @@ class SearchNode(tree.Node):
         """Parses an expression and determines the field and filter type."""
         parts = expression.split(FILTER_SEPARATOR)
         field = parts[0]
-
-        if parts[-1] not in VALID_FILTERS:
+        if parts[-1] == 'filter':
+            filter_type = 'filter'
+            parts = parts[:-1]
+        elif parts[-1] not in VALID_FILTERS:
             filter_type = 'contains'
         else:
             filter_type = parts.pop()

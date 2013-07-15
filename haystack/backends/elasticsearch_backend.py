@@ -237,11 +237,10 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                             narrow_queries=None, spelling_query=None,
                             within=None, dwithin=None, distance_point=None,
                             models=None, limit_to_registered_models=None,
-                            result_class=None):
+                            result_class=None, filters=None):
         index = haystack.connections[self.connection_alias].get_unified_index()
         content_field = index.document_field
-
-        if query_string == '*:*':
+        if query_string == '*:*' or query_string.split(':')[-1] == '':
             kwargs = {
                 'query': {
                     'filtered': {
@@ -273,7 +272,14 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 fields = " ".join(fields)
 
             kwargs['fields'] = fields
-
+        if filters:
+            kwargs['query']['filtered']['filter'] = {
+                'bool': {
+                    'must': [],
+                    },
+                }
+            for term, value in filters:
+                kwargs['query']['filtered']['filter']['bool']['must'].append({'term': {term: '%s' % value}})
         if sort_by is not None:
             order_list = []
             for field, direction in sort_by:
@@ -405,16 +411,20 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
         if narrow_queries:
             kwargs['query'].setdefault('filtered', {})
             kwargs['query']['filtered'].setdefault('filter', {})
-            kwargs['query']['filtered']['filter'] = {
+            fragment = {
                 'fquery': {
                     'query': {
                         'query_string': {
                             'query': u' AND '.join(list(narrow_queries)),
+                            },
                         },
-                    },
                     '_cache': True,
+                    }
                 }
-            }
+            if not filters:
+                kwargs['query']['filtered']['filter'] = fragment
+            else:
+                kwargs['query']['filtered']['filter']['bool']['must'].append(fragment)
 
         if within is not None:
             from haystack.utils.geo import generate_bounding_box
@@ -753,6 +763,10 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
 # Sucks that this is almost an exact copy of what's in the Solr backend,
 # but we can't import due to dependencies.
 class ElasticsearchSearchQuery(BaseSearchQuery):
+    def __init__(self, *args, **kwargs):
+        super(ElasticsearchSearchQuery, self).__init__(*args, **kwargs)
+        self.filters = []
+
     def matching_all_fragment(self):
         return '*:*'
 
@@ -774,6 +788,9 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
             'sfield': sfield,
         }
         self.order_by_distance.update(kwargs)
+
+    def add_query_filter(self, field, value):
+        self.filters.append((field, value))
 
     def build_query_fragment(self, field, filter_type, value):
         from haystack import connections
@@ -813,7 +830,6 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
             'lt': u'{* TO %s}',
             'lte': u'[* TO %s]',
         }
-
         if value.post_process is False:
             query_frag = prepared_value
         else:
@@ -822,6 +838,9 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
                     query_frag = u'-[* TO *]'
                 else:
                     query_frag = u'[* TO *]'
+            elif filter_type == 'filter':
+                self.filters.append((field, value))
+                query_frag = None
             elif filter_type in ['contains', 'startswith']:
                 if value.input_type_name == 'exact':
                     query_frag = prepared_value
@@ -862,11 +881,11 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
 
                 query_frag = filter_types[filter_type] % prepared_value
 
-        if len(query_frag) and not isinstance(value, Raw):
+        if query_frag and len(query_frag) and not isinstance(value, Raw):
             if not query_frag.startswith('(') and not query_frag.endswith(')'):
                 query_frag = "(%s)" % query_frag
-
-        return u"%s%s" % (index_fieldname, query_frag)
+        if query_frag:
+            return u"%s%s" % (index_fieldname, query_frag)
 
     def build_alt_parser_query(self, parser_name, query_string='', **kwargs):
         if query_string:
@@ -919,6 +938,9 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
 
         if self.fields:
             search_kwargs['fields'] = self.fields
+
+        if self.filters:
+            search_kwargs['filters'] = self.filters
 
         if self.highlight:
             search_kwargs['highlight'] = self.highlight

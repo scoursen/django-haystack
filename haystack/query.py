@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 import operator
 import warnings
-from django.utils import six
+try:
+    from django.utils import six
+except ImportError:
+    import six
 from haystack import connections, connection_router
 from haystack.backends import SQ
 from haystack.constants import REPR_OUTPUT_SIZE, ITERATOR_LOAD_PER_QUERY, DEFAULT_OPERATOR
@@ -240,7 +243,7 @@ class SearchQuerySet(object):
         """
         Retrieves an item or slice from the set of results.
         """
-        if not isinstance(k, (slice, six.integer_types)):
+        if six and not isinstance(k, (slice, six.integer_types)):
             raise TypeError
         assert ((not isinstance(k, slice) and (k >= 0))
                 or (isinstance(k, slice) and (k.start is None or k.start >= 0)
@@ -358,6 +361,12 @@ class SearchQuerySet(object):
         """Boosts a certain aspect of the query."""
         clone = self._clone()
         clone.query.add_boost(term, boost)
+        return clone
+
+    def terms_stats_facet(self, key_field, value_field):
+        """Adds term stats faceting to a query"""
+        clone = self._clone()
+        clone.query.add_terms_stats_facet(key_field, value_field)
         return clone
 
     def facet(self, field, **options):

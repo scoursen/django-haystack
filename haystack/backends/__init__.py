@@ -6,7 +6,10 @@ from time import time
 from django.conf import settings
 from django.db.models import Q
 from django.db.models.base import ModelBase
-from django.utils import six
+try:
+    from django.utils import six
+except ImportError:
+    import six
 from django.utils import tree
 from haystack.constants import VALID_FILTERS, FILTER_SEPARATOR, DEFAULT_ALIAS
 from haystack.exceptions import MoreLikeThisError, FacetingError
@@ -127,7 +130,7 @@ class BaseSearchBackend(object):
         raise NotImplementedError
 
     def build_search_kwargs(self, query_string, sort_by=None, start_offset=0, end_offset=None,
-                            fields='', highlight=False, facets=None,
+                            fields='', highlight=False, facets=None, temrs_stats_facets=None,
                             date_facets=None, query_facets=None,
                             narrow_queries=None, spelling_query=None,
                             within=None, dwithin=None, distance_point=None,
@@ -453,6 +456,7 @@ class BaseSearchQuery(object):
         self.end_offset = None
         self.highlight = False
         self.facets = {}
+        self.terms_stats_facets = {}
         self.date_facets = {}
         self.query_facets = []
         self.narrow_queries = set()
@@ -550,7 +554,6 @@ class BaseSearchQuery(object):
 
         if self.models:
             kwargs['models'] = self.models
-
         return kwargs
 
     def run(self, spelling_query=None, **kwargs):
@@ -903,6 +906,12 @@ class BaseSearchQuery(object):
             'point': ensure_point(point),
         }
 
+    def add_terms_stats_facet(self, key_field, value_field):
+        """Adds a terms stats facets on a field"""
+        from haystack import connections
+        field_name = connections[self._using].get_unified_index().get_facet_fieldname(key_field)
+        self.terms_stats_facets[field_name] = value_field
+
     def add_field_facet(self, field, **options):
         """Adds a regular facet on a field."""
         from haystack import connections
@@ -953,7 +962,6 @@ class BaseSearchQuery(object):
         from haystack import connections
         revised_facets = {}
         field_data = connections[self._using].get_unified_index().all_searchfields()
-
         for facet_type, field_details in results.get('facets', {}).items():
             temp_facets = {}
 
@@ -1005,6 +1013,7 @@ class BaseSearchQuery(object):
         clone.highlight = self.highlight
         clone.stats = self.stats.copy()
         clone.facets = self.facets.copy()
+        clone.terms_stats_facets = self.terms_stats_facets.copy()
         clone.date_facets = self.date_facets.copy()
         clone.query_facets = self.query_facets[:]
         clone.narrow_queries = self.narrow_queries.copy()

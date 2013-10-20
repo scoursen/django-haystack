@@ -7,6 +7,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db.models.loading import get_model
 from django.utils import six
 import haystack
+import collections
 from haystack.backends import BaseEngine, BaseSearchBackend, BaseSearchQuery, log_query
 from haystack.constants import ID, DJANGO_CT, DJANGO_ID, DEFAULT_OPERATOR
 from haystack.exceptions import MissingDependency, MoreLikeThisError
@@ -23,6 +24,8 @@ try:
     import pyelasticsearch
 except ImportError:
     raise MissingDependency("The 'elasticsearch' backend requires the installation of 'pyelasticsearch'. Please refer to the documentation.")
+
+StatsTuple = collections.namedtuple('StatsTuple', ['term', 'count', 'min', 'max', 'mean', 'total'])
 
 
 DATETIME_REGEX = re.compile(
@@ -240,7 +243,7 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 self.log.error("Failed to clear Elasticsearch index: %s", e)
 
     def build_search_kwargs(self, query_string, sort_by=None, start_offset=0, end_offset=None,
-                            fields='', highlight=False, facets=None,
+                            fields='', highlight=False, facets=None, terms_stats_facets=None,
                             date_facets=None, query_facets=None,
                             narrow_queries=None, spelling_query=None,
                             within=None, dwithin=None, distance_point=None,
@@ -358,6 +361,17 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                     facet_options['facet_filter'] = extra_options.pop('facet_filter')
                 facet_options['terms'].update(extra_options)
                 kwargs['facets'][facet_fieldname] = facet_options
+
+        if terms_stats_facets is not None:
+            kwargs.setdefault('facets', {})
+            for key_field, value_field in terms_stats_facets.items():
+                facet_options = {
+                    'terms_stats': {
+                        'key_field': key_field,
+                        'value_field': value_field,
+                        },
+                    }
+                kwargs['facets'][key_field] = facet_options
 
         if date_facets is not None:
             kwargs.setdefault('facets', {})
@@ -595,10 +609,11 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 'dates': {},
                 'queries': {},
             }
-
             for facet_fieldname, facet_info in raw_results['facets'].items():
                 if facet_info.get('_type', 'terms') == 'terms':
                     facets['fields'][facet_fieldname] = [(individual['term'], individual['count']) for individual in facet_info['terms']]
+                elif facet_info.get('_type', 'terms') == 'terms_stats':
+                    facets['fields'][facet_fieldname] = [StatsTuple(individual['term'], individual['count'], individual['min'], individual['max'], individual['mean'], individual['total']) for individual in facet_info['terms']]
                 elif facet_info.get('_type', 'terms') == 'date_histogram':
                     # Elasticsearch provides UTC timestamps with an extra three
                     # decimals of precision, which datetime barfs on.
@@ -945,6 +960,9 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
         if self.facets:
             search_kwargs['facets'] = self.facets
 
+        if self.terms_stats_facets:
+            search_kwargs['terms_stats_facets'] = self.terms_stats_facets
+
         if self.fields:
             search_kwargs['fields'] = self.fields
 
@@ -968,7 +986,6 @@ class ElasticsearchSearchQuery(BaseSearchQuery):
 
         if spelling_query:
             search_kwargs['spelling_query'] = spelling_query
-
         return search_kwargs
 
     def run(self, spelling_query=None, **kwargs):

@@ -1,7 +1,10 @@
 from __future__ import unicode_literals
 import re
 from django.utils import datetime_safe
-from django.utils import six
+try:
+    from django.utils import six
+except ImportError:
+    import six
 from django.template import loader, Context
 from haystack.exceptions import SearchFieldError
 

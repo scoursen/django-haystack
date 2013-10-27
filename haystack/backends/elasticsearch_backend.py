@@ -619,7 +619,6 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 'dates': {},
                 'queries': {},
             }
-            import pdb; pdb.set_trace()
             for facet_fieldname, facet_info in raw_results['facets'].items():
                 if facet_info.get('_type', 'terms') == 'terms':
                     facets['fields'][facet_fieldname] = [(individual['term'], individual['count']) for individual in facet_info['terms']]
@@ -628,7 +627,13 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 elif facet_info.get('_type', 'terms') == 'date_histogram':
                     # Elasticsearch provides UTC timestamps with an extra three
                     # decimals of precision, which datetime barfs on.
-                    facets['dates'][facet_fieldname] = [(datetime.datetime.utcfromtimestamp(individual['time'] / 1000), individual['count']) for individual in facet_info['entries']]
+                    results = []
+                    for individual in facet_info['entries']:
+                        if 'total_count' in individual:
+                            results.append(StatsTuple(datetime.datetime.utcfromtimestamp(individual['time']/1000), individual['count'], individual['min'], individual['max'], individual['mean'], individual['total']))
+                        else:
+                            results.append((datetime.datetime.utcfromtimestamp(individual['time'] / 1000), individual['count']))
+                    facets['dates'][facet_fieldname] = results
                 elif facet_info.get('_type', 'terms') == 'query':
                     facets['queries'][facet_fieldname] = facet_info['count']
 

@@ -402,6 +402,13 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                         }
                     }
                 }
+                if 'value_field' in value:
+                    kwargs['facets'][facet_fieldname]['date_histogram'] = {
+                        'key_field': facet_fieldname,
+                        'interval': interval,
+                        'value_field': value['value_field'],
+                        }
+
 
         if query_facets is not None:
             kwargs.setdefault('facets', {})
@@ -612,6 +619,7 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 'dates': {},
                 'queries': {},
             }
+            import pdb; pdb.set_trace()
             for facet_fieldname, facet_info in raw_results['facets'].items():
                 if facet_info.get('_type', 'terms') == 'terms':
                     facets['fields'][facet_fieldname] = [(individual['term'], individual['count']) for individual in facet_info['terms']]

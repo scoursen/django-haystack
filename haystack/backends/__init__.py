@@ -22,7 +22,7 @@ except ImportError:
     from django.utils.encoding import force_unicode as force_text
 
 
-VALID_GAPS = ['year', 'month', 'day', 'hour', 'minute', 'second']
+VALID_GAPS = ['year', 'quarter', 'month', 'week', 'day', 'hour', 'minute', 'second']
 
 
 def log_query(func):

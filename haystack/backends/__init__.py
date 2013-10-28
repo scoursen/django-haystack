@@ -938,7 +938,6 @@ class BaseSearchQuery(object):
         }
         if facet_filter:
             details['facet_filter'] = facet_filter
-            print 'facet_filter is set'
         self.date_facets[field_name] = details
 
     def add_query_facet(self, field, query, facet_fieldname=None):

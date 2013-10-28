@@ -350,9 +350,10 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
             kwargs.setdefault('facets', {})
 
             for facet_fieldname, extra_options in facets.items():
+                key_field = extra_options.pop('key_field', facet_fieldname)
                 facet_options = {
                     'terms': {
-                        'field': facet_fieldname,
+                        'field': key_field,
                         'size': 100,
                     },
                 }
@@ -387,28 +388,32 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 if value.get('gap_amount', 1) != 1 and not interval in ('month', 'year'):
                     # Just the first character is valid for use.
                     interval = "%s%s" % (value['gap_amount'], interval[:1])
-
+                fieldname = value.get('key_field', facet_fieldname)
                 kwargs['facets'][facet_fieldname] = {
                     'date_histogram': {
-                        'field': facet_fieldname,
+                        'field': fieldname,
                         'interval': interval,
                     },
                     'facet_filter': {
                         "range": {
-                            facet_fieldname: {
+                            fieldname: {
                                 'from': self._from_python(value.get('start_date')),
                                 'to': self._from_python(value.get('end_date')),
                             }
                         }
                     }
                 }
+                facet_filter = value.get('facet_filter')
+                if facet_filter:
+                    old_filter = kwargs['facets'][facet_fieldname]['facet_filter']
+                    new_filter = {'and': [old_filter, facet_filter]}
+                    kwargs['facets'][facet_fieldname]['facet_filter'] = new_filter
                 if 'value_field' in value:
                     kwargs['facets'][facet_fieldname]['date_histogram'] = {
-                        'key_field': facet_fieldname,
+                        'key_field': fieldname,
                         'interval': interval,
                         'value_field': value['value_field'],
                         }
-
 
         if query_facets is not None:
             kwargs.setdefault('facets', {})

@@ -363,10 +363,10 @@ class SearchQuerySet(object):
         clone.query.add_boost(term, boost)
         return clone
 
-    def terms_stats_facet(self, key_field, value_field):
+    def terms_stats_facet(self, key_field, value_field, facet_fieldname=None):
         """Adds term stats faceting to a query"""
         clone = self._clone()
-        clone.query.add_terms_stats_facet(key_field, value_field)
+        clone.query.add_terms_stats_facet(key_field, value_field, facet_fieldname=facet_fieldname)
         return clone
 
     def facet(self, field, **options):
@@ -412,10 +412,10 @@ class SearchQuerySet(object):
         clone.query.add_distance(field, point)
         return clone
 
-    def date_facet(self, field, value_field=None, start_date=None, end_date=None, gap_by=None, gap_amount=1):
+    def date_facet(self, field, value_field=None, start_date=None, end_date=None, gap_by=None, gap_amount=1, facet_fieldname=None, facet_filter=None):
         """Adds faceting to a query for the provided field by date."""
         clone = self._clone()
-        clone.query.add_date_facet(field, value_field, start_date, end_date, gap_by, gap_amount=gap_amount)
+        clone.query.add_date_facet(field, value_field, start_date, end_date, gap_by, gap_amount=gap_amount, facet_fieldname=facet_fieldname, facet_filter=facet_filter)
         return clone
 
     def query_facet(self, field, query):

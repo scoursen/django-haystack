@@ -627,16 +627,15 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 elif facet_info.get('_type', 'terms') == 'date_histogram':
                     # Elasticsearch provides UTC timestamps with an extra three
                     # decimals of precision, which datetime barfs on.
-                    results = []
+                    facet_results = []
                     for individual in facet_info['entries']:
                         if 'total_count' in individual:
-                            results.append(StatsTuple(datetime.datetime.utcfromtimestamp(individual['time']/1000), individual['count'], individual['min'], individual['max'], individual['mean'], individual['total']))
+                            facet_results.append(StatsTuple(datetime.datetime.utcfromtimestamp(individual['time']/1000), individual['count'], individual['min'], individual['max'], individual['mean'], individual['total']))
                         else:
-                            results.append((datetime.datetime.utcfromtimestamp(individual['time'] / 1000), individual['count']))
-                    facets['dates'][facet_fieldname] = results
+                            facet_results.append((datetime.datetime.utcfromtimestamp(individual['time'] / 1000), individual['count']))
+                    facets['dates'][facet_fieldname] = facet_results
                 elif facet_info.get('_type', 'terms') == 'query':
                     facets['queries'][facet_fieldname] = facet_info['count']
-
         unified_index = connections[self.connection_alias].get_unified_index()
         indexed_models = unified_index.get_indexed_models()
         content_field = unified_index.document_field

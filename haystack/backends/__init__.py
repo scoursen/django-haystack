@@ -911,23 +911,23 @@ class BaseSearchQuery(object):
         from haystack import connections
         field_name = connections[self._using].get_unified_index().get_facet_fieldname(key_field)
         facet_fieldname = facet_fieldname or field_name
-        self.terms_stats_facets[facet_fieldname] = value_field
+        self.terms_stats_facets[field_name] = (facet_fieldname, value_field)
 
     def add_field_facet(self, field, facet_fieldname=None, **options):
         """Adds a regular facet on a field."""
         from haystack import connections
-        field_name = connections[self._using].get_unified_index().get_facet_fieldname(field)
-        facet_field_name = facet_fieldname or connections[self._using].get_unified_index().get_facet_fieldname(field)
+        facet_name = connections[self._using].get_unified_index().get_facet_fieldname(field)
+        field_name = facet_fieldname or connections[self._using].get_unified_index().get_facet_fieldname(field)
         options['key_field'] = field_name
-        self.facets[facet_field_name] = options.copy()
+        self.facets[facet_name] = options.copy()
 
     def add_date_facet(self, field, value_field, start_date, end_date, gap_by, gap_amount=1, facet_fieldname=None, facet_filter=None):
         """Adds a date-based facet on a field."""
         from haystack import connections
         if not gap_by in VALID_GAPS:
             raise FacetingError("The gap_by ('%s') must be one of the following: %s." % (gap_by, ', '.join(VALID_GAPS)))
-        key_field = connections[self._using].get_unified_index().get_facet_fieldname(field)
-        field_name = facet_fieldname or key_field
+        key_field = facet_fieldname or connections[self._using].get_unified_index().get_facet_fieldname(field)
+        facet_name = key_field
         details = {
             'start_date': start_date,
             'end_date': end_date,
@@ -938,7 +938,7 @@ class BaseSearchQuery(object):
         }
         if facet_filter:
             details['facet_filter'] = facet_filter
-        self.date_facets[field_name] = details
+        self.date_facets[facet_name] = details
 
     def add_query_facet(self, field, query, facet_fieldname=None):
         """Adds a query facet on a field."""

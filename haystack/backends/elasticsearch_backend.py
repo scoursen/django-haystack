@@ -368,14 +368,15 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
 
         if terms_stats_facets is not None:
             kwargs.setdefault('facets', {})
-            for key_field, value_field in terms_stats_facets.items():
+            for facet_fieldname, field_values in terms_stats_facets.items():
+                key_field, value_field = field_values
                 facet_options = {
                     'terms_stats': {
                         'key_field': key_field,
                         'value_field': value_field,
                         },
                     }
-                kwargs['facets'][key_field] = facet_options
+                kwargs['facets'][facet_fieldname] = facet_options
 
         if date_facets is not None:
             kwargs.setdefault('facets', {})

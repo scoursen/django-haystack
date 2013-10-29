@@ -366,7 +366,7 @@ class SearchQuerySet(object):
     def terms_stats_facet(self, key_field, value_field, facet_fieldname=None):
         """Adds term stats faceting to a query"""
         clone = self._clone()
-        clone.query.add_terms_stats_facet(key_field, value_field, facet_fieldname=facet_fieldname)
+        clone.query.add_terms_stats_facet(key_field, value_field, facet_fieldname)
         return clone
 
     def facet(self, field, **options):

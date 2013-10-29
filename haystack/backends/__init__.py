@@ -906,7 +906,7 @@ class BaseSearchQuery(object):
             'point': ensure_point(point),
         }
 
-    def add_terms_stats_facet(self, key_field, value_field, facet_fieldname=None):
+    def add_terms_stats_facet(self, key_field, value_field, facet_fieldname):
         """Adds a terms stats facets on a field"""
         from haystack import connections
         field_name = connections[self._using].get_unified_index().get_facet_fieldname(key_field)
@@ -926,8 +926,8 @@ class BaseSearchQuery(object):
         from haystack import connections
         if not gap_by in VALID_GAPS:
             raise FacetingError("The gap_by ('%s') must be one of the following: %s." % (gap_by, ', '.join(VALID_GAPS)))
-        key_field = facet_fieldname or connections[self._using].get_unified_index().get_facet_fieldname(field)
-        facet_name = key_field
+        facet_name = connections[self._using].get_unified_index().get_facet_fieldname(field)
+        key_field = facet_fieldname or facet_name
         details = {
             'start_date': start_date,
             'end_date': end_date,

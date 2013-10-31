@@ -328,10 +328,10 @@ class SearchQuerySet(object):
         clone.query.add_order_by_distance(**kwargs)
         return clone
 
-    def highlight(self):
+    def highlight(self, *fields):
         """Adds highlighting to the results."""
         clone = self._clone()
-        clone.query.add_highlight()
+        clone.query.add_highlight(*fields)
         return clone
 
     def models(self, *models):

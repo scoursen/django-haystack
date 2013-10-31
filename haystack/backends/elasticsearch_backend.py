@@ -325,12 +325,14 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
         # if end_offset is not None:
         #     kwargs['size'] = end_offset - start_offset
 
-        if highlight is True:
+        if highlight:
             kwargs['highlight'] = {
                 'fields': {
                     content_field: {'store': 'yes'},
                 }
             }
+            for field in highlight:
+                kwargs['highlight']['fields'][field] = {'store': 'yes'}
 
         if self.include_spelling:
             kwargs['suggest'] = {
@@ -666,7 +668,11 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 del(additional_fields[DJANGO_ID])
 
                 if 'highlight' in raw_result:
-                    additional_fields['highlighted'] = raw_result['highlight'].get(content_field, '')
+                    additional_fields['highlighted'] = raw_result['highlight'].get(content_field, [])
+                    xtras = raw_result['highlight'].copy()
+                    xtras.pop(content_field, None)
+                    if xtras:
+                        additional_fields['highlighted_fields'] = xtras
 
                 if distance_point:
                     additional_fields['_point_of_origin'] = distance_point
